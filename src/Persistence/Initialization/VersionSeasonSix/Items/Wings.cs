@@ -1,4 +1,4 @@
-﻿// <copyright file="Wings.cs" company="MUnique">
+// <copyright file="Wings.cs" company="MUnique">
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 // </copyright>
 
@@ -47,6 +47,7 @@ public class Wings : WingsInitializerBase
     /// https://wiki.infinitymu.net/index.php?title=2nd_Level_Wing
     /// https://wiki.infinitymu.net/index.php?title=3rd_Level_Wing
     /// http://www.guiamuonline.com/items-de-mu-online/wings
+    /// Small Wings (Season 5). These wings have no options; item level = 0; and no Luck option - they cannot be upgraded. Characters can use them from level 1. https://muonlione.fandom.com/pl/wiki/Wings
     /// Item option numbers:
     /// 3rd wings:
     /// 0x11 (3) -> Damage
@@ -74,6 +75,14 @@ public class Wings : WingsInitializerBase
         this.CreateWing(1, 5, 3, "Wings of Heaven", 100, 10, 200, 180, 1, 0, 0, 1, 0, 0, 0, this.BuildOptions((0, OptionType.WizDamage)), 12, 12, this._damageIncreaseByLevelTable, null);
         this.CreateWing(2, 5, 2, "Wings of Satan", 100, 20, 200, 180, 0, 1, 0, 1, 0, 0, 0, this.BuildOptions((0, OptionType.PhysDamage)), 12, 12, this._damageIncreaseByLevelTable, null);
         this.CreateWing(41, 4, 2, "Wings of Curse", 100, 10, 200, 180, 0, 0, 0, 0, 0, 1, 0, this.BuildOptions((0, OptionType.WizDamage)), 12, 12, this._damageIncreaseByLevelTable, null);
+
+        // Small wings:
+        this.CreateWing(130, 2, 2, "Small Cape of Lord", 100, 15, 200, 1, 0, 0, 0, 0, 1, 0, 0, this.BuildOptions((0, OptionType.PhysDamage)), 20, 20, this._damageIncreaseByLevelTable, null);
+        this.CreateWing(131, 3, 2, "Small Wings of Curse", 100, 10, 200, 1, 0, 0, 0, 0, 0, 1, 0, this.BuildOptions((0, OptionType.WizDamage)), 12, 12, this._damageIncreaseByLevelTable, null);
+        this.CreateWing(132, 3, 2, "Small Wings of Elf", 100, 10, 200, 1, 0, 0, 1, 0, 0, 0, 0, this.BuildOptions((0, OptionType.HealthRecover)), 12, 12, this._damageIncreaseByLevelTable, null);
+        this.CreateWing(133, 3, 2, "Small Wings of Heaven", 100, 10, 200, 1, 1, 0, 0, 1, 0, 0, 0, this.BuildOptions((0, OptionType.WizDamage)), 12, 12, this._damageIncreaseByLevelTable, null);
+        this.CreateWing(134, 3, 2, "Small Wings of Satan", 100, 20, 200, 1, 0, 1, 0, 1, 0, 0, 0, this.BuildOptions((0, OptionType.PhysDamage)), 12, 12, this._damageIncreaseByLevelTable, null);
+        this.CreateWing(135, 2, 2, "Little Warrior's Cloak", 100, 15, 200, 1, 0, 0, 0, 0, 0, 0, 1, this.BuildOptions((0, OptionType.PhysDamage)), 20, 20, this._damageIncreaseByLevelTable, null);
 
         // Second class wings:
         var secondWingOptions = this.CreateSecondClassWingOptions();
@@ -171,24 +180,33 @@ public class Wings : WingsInitializerBase
             wing.BasePowerUpAttributes.Add(powerUp);
         }
 
-        var optionDefinition = this.Context.CreateNew<ItemOptionDefinition>();
-        optionDefinition.SetGuid(wing.GetItemId());
-        this.GameConfiguration.ItemOptions.Add(optionDefinition);
-
-        optionDefinition.Name = $"{name} Options";
-        optionDefinition.AddChance = 0.25f;
-        optionDefinition.AddsRandomly = true;
-        optionDefinition.MaximumOptionsPerItem = 1;
-        wing.PossibleItemOptions.Add(optionDefinition);
-        byte i = 0;
-        foreach (var option in possibleOptions)
+        // Small Wings (number 130; 131; 132; 133; 134; 135) have no options
+        if ((number != 130) && (number != 131) && (number != 132) && (number != 133) && (number != 134) && (number != 135))
         {
-            i++;
-            option.SetGuid(ItemOptionDefinitionNumbers.WingDefense, wing.GetItemId(), i);
-            optionDefinition.PossibleOptions.Add(option);
+            var optionDefinition = this.Context.CreateNew<ItemOptionDefinition>();
+            optionDefinition.SetGuid(wing.GetItemId());
+            this.GameConfiguration.ItemOptions.Add(optionDefinition);
+
+            optionDefinition.Name = $"{name} Options";
+            optionDefinition.AddChance = 0.25f;
+            optionDefinition.AddsRandomly = true;
+            optionDefinition.MaximumOptionsPerItem = 1;
+            wing.PossibleItemOptions.Add(optionDefinition);
+            byte i = 0;
+            foreach (var option in possibleOptions)
+            {
+                i++;
+                option.SetGuid(ItemOptionDefinitionNumbers.WingDefense, wing.GetItemId(), i);
+                optionDefinition.PossibleOptions.Add(option);
+            }
         }
 
-        wing.PossibleItemOptions.Add(this.GameConfiguration.ItemOptions.First(iod => iod.PossibleOptions.Any(o => o?.OptionType == ItemOptionTypes.Luck)));
+        // Small Wings (number 130; 131; 132; 133; 134; 135) have no Luck
+        if ((number != 130) && (number != 131) && (number != 132) && (number != 133) && (number != 134) && (number != 135))
+        {
+            wing.PossibleItemOptions.Add(this.GameConfiguration.ItemOptions.First(iod => iod.PossibleOptions.Any(o => o?.OptionType == ItemOptionTypes.Luck)));
+        }
+
         return wing;
     }
 
@@ -202,7 +220,13 @@ public class Wings : WingsInitializerBase
         wing.Height = height;
         wing.Name = name;
         wing.DropLevel = dropLevel;
-        wing.MaximumItemLevel = 15;
+
+        // Small Wings (number 130; 131; 132; 133; 134; 135) MaximumItemLevel = 0
+        if ((number != 130) && (number != 131) && (number != 132) && (number != 133) && (number != 134) && (number != 135))
+        {
+            wing.MaximumItemLevel = 15;
+        }
+
         wing.DropsFromMonsters = false;
         wing.Durability = durability;
         wing.ItemSlot = this.GameConfiguration.ItemSlotTypes.First(st => st.ItemSlots.Contains(7));
