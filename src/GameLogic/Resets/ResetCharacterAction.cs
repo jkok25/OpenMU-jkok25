@@ -16,6 +16,7 @@ using MUnique.OpenMU.GameLogic.Views.NPC;
 /// </summary>
 public class ResetCharacterAction
 {
+    private const short LorenciaMapNumber = 0;
     private readonly Player _player;
     private readonly NonPlayerCharacter? _npc;
     private readonly LogoutAction _logoutAction = new();
@@ -87,7 +88,7 @@ public class ResetCharacterAction
         this.UpdateStats(configuration, resetProgression);
         if (configuration.MoveHome)
         {
-            await this.MoveHomeAsync().ConfigureAwait(false);
+            await this.MoveHomeAsync(configuration.LogOut).ConfigureAwait(false);
         }
 
         if (configuration.LogOut)
@@ -196,16 +197,49 @@ public class ResetCharacterAction
         }
     }
 
-    private async ValueTask MoveHomeAsync()
+    private async ValueTask MoveHomeAsync(bool willLogout)
     {
+        // Prefer the character class home map. Fallback to Lorencia.
         var homeMapDef = this._player.SelectedCharacter!.CharacterClass!.HomeMap;
-        if (homeMapDef is { }
-            && await this._player.GameContext.GetMapAsync((ushort)homeMapDef.Number).ConfigureAwait(false) is { SafeZoneSpawnGate: { } spawnGate })
+        ExitGate? spawnGate = null;
+
+        if (homeMapDef is { })
         {
-            this._player.SelectedCharacter.PositionX = (byte)Rand.NextInt(spawnGate.X1, spawnGate.X2);
+            var homeMap = await this._player.GameContext.GetMapAsync((ushort)homeMapDef.Number).ConfigureAwait(false);
+            if (homeMap?.SafeZoneSpawnGate is { } homeSpawn)
+            {
+                spawnGate = homeSpawn;
+            }
+        }
+
+        if (spawnGate is null)
+        {
+            var lorMap = await this._player.GameContext.GetMapAsync((ushort)LorenciaMapNumber).ConfigureAwait(false);
+            if (lorMap?.SafeZoneSpawnGate is { } lorSpawn)
+            {
+                spawnGate = lorSpawn;
+            }
+        }
+
+        if (spawnGate is null)
+        {
+            return;
+        }
+
+        if (willLogout)
+        {
+            // For logout flow: don't perform an actual warp which requires client acknowledgements.
+            // Instead set the SelectedCharacter position/map directly so the server can persist the character
+            // state on logout without waiting for the client.
+            this._player.SelectedCharacter!.PositionX = (byte)Rand.NextInt(spawnGate.X1, spawnGate.X2);
             this._player.SelectedCharacter.PositionY = (byte)Rand.NextInt(spawnGate.Y1, spawnGate.Y2);
             this._player.SelectedCharacter.CurrentMap = spawnGate.Map;
             this._player.Rotation = spawnGate.Direction;
+        }
+        else
+        {
+            // For non-logout flows, perform an actual warp so the client is notified about the map change.
+            await this._player.WarpToAsync(spawnGate).ConfigureAwait(false);
         }
     }
 
@@ -219,3 +253,4 @@ public class ResetCharacterAction
         await this._player.InvokeViewPlugInAsync<IUpdateLevelPlugIn>(p => p.UpdateLevelAsync()).ConfigureAwait(false);
     }
 }
+
