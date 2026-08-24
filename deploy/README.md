@@ -5,7 +5,7 @@ you need, we have multiple ways to do that.
 
 ## All-in-one
 
-The [all-in-one deployment](/all-in-one/) is recommended, if you want to host on
+The [all-in-one deployment](/deploy/all-in-one/) is recommended, if you want to host on
 a small machine with a low amount of players.
 In this case, all kinds of OpenMU subsystems (ConnectServer, GameServer, LoginServer,
 AdminPanel, ...) are running in one process.
